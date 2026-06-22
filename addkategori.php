@@ -1,0 +1,113 @@
+<?php
+$conn = mysqli_connect("localhost", "root", "", "toko_sport");
+
+if (!$conn) {
+    die("Koneksi gagal: " . mysqli_connect_error());
+}
+
+/* ======================
+   PROSES TAMBAH KATEGORI
+====================== */
+if(isset($_POST['simpan'])){
+    $nama_kategori = $_POST['nama_kategori'];
+
+    mysqli_query($conn, "
+        INSERT INTO kategori (nama_kategori)
+        VALUES ('$nama_kategori')
+    ");
+
+    header("Location: kategori.php");
+    exit;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Tambah Kategori</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+body{
+    background:#f4f6f9;
+}
+
+/* NAVBAR (sama seperti add produk) */
+.navbar-custom{
+    background:white;
+    box-shadow:0 2px 10px rgba(0,0,0,.1);
+    padding:10px 20px;
+}
+
+/* CONTAINER */
+.container-box{
+    max-width:600px;
+    margin:40px auto;
+}
+
+/* CARD */
+.card{
+    border:none;
+    box-shadow:0 3px 10px rgba(0,0,0,.1);
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-custom">
+    <div class="container-fluid">
+        <span class="navbar-brand fw-bold">
+            <i class="bi bi-tags"></i> Tambah Kategori
+        </span>
+
+        <div>
+            <i class="bi bi-person-circle"></i> Admin
+        </div>
+    </div>
+</nav>
+
+<!-- CONTENT -->
+<div class="container container-box">
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">➕ Tambah Kategori</h4>
+        </div>
+
+        <div class="card-body">
+
+            <form method="POST">
+
+                <div class="mb-3">
+                    <label>Id Kategori</label>
+                    <input type="text" name="id_kategori" class="form-control" required>
+                </div>
+
+
+                <div class="mb-3">
+                    <label>Nama Kategori</label>
+                    <input type="text" name="nama_kategori" class="form-control" required>
+                </div>
+
+                <button type="submit" name="simpan" class="btn btn-primary w-100">
+                    Simpan Kategori
+                </button>
+
+                <a href="kategori.php" class="btn btn-secondary w-100 mt-2">
+                    Kembali
+                </a>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
