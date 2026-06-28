@@ -1,14 +1,7 @@
 <?php
+$koneksi = mysqli_connect("localhost","root","","toko_sport");
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "toko_sport";
-
-$koneksi = mysqli_connect($host, $user, $pass, $db);
-
-if (!$koneksi) {
-    die("Koneksi gagal: " . mysqli_connect_error());
+if(!$koneksi){
+    die("Koneksi gagal : ".mysqli_connect_error());
 }
-
-echo "FILE KONEKSI BERHASIL DIMUAT<br>";
+?>

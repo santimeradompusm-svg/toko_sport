@@ -1,4 +1,13 @@
 <?php
+session_start();
+
+// Proteksi halaman admin
+if(!isset($_SESSION['username']) || $_SESSION['role'] != 'admin'){
+    header("Location: login.php");
+    exit();
+}
+
+// Koneksi Database
 $conn = mysqli_connect("localhost", "root", "", "toko_sport");
 
 if (!$conn) {
@@ -13,17 +22,22 @@ if(!isset($_GET['id'])){
     exit;
 }
 
-$id = $_GET['id'];
+$id = mysqli_real_escape_string($conn, $_GET['id']);
 
 $data = mysqli_fetch_assoc(
     mysqli_query($conn, "SELECT * FROM kategori WHERE id_kategori='$id'")
 );
 
+if(!$data){
+    header("Location: kategori.php");
+    exit;
+}
+
 /* ======================
    UPDATE KATEGORI
 ====================== */
 if(isset($_POST['update'])){
-    $nama_kategori = $_POST['nama_kategori'];
+    $nama_kategori = mysqli_real_escape_string($conn, $_POST['nama_kategori']);
 
     mysqli_query($conn, "
         UPDATE kategori SET
@@ -40,85 +54,164 @@ if(isset($_POST['update'])){
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Edit Kategori</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Kategori Premium - Toko Sport</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <style>
-body{
-    background:#f4f6f9;
+body {
+    background: #f8f9fa;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #333c4e;
 }
 
-/* NAVBAR sama seperti add kategori */
-.navbar-custom{
-    background:white;
-    box-shadow:0 2px 10px rgba(0,0,0,.1);
-    padding:10px 20px;
+/* Header Topbar */
+.navbar-custom {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1px 15px rgba(0, 0, 0, 0.04);
+    padding: 15px 30px;
 }
 
-/* CONTAINER */
-.container-box{
-    max-width:600px;
-    margin:40px auto;
+/* Card Container Modern */
+.container-box {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 0 15px;
 }
 
-/* CARD */
-.card{
-    border:none;
-    box-shadow:0 3px 10px rgba(0,0,0,.1);
+.card {
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(13, 110, 253, 0.04), 0 5px 15px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    padding: 24px;
+    border-bottom: none;
+}
+
+.card-body {
+    padding: 35px;
+    background: #fff;
+}
+
+/* Form Styling */
+.form-label-custom {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-control {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 11px 16px;
+    font-size: 0.95rem;
+    color: #1a202c;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+}
+
+.form-control[readonly] {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Buttons Configuration */
+.btn-submit-custom {
+    background: #0d6efd;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-submit-custom:hover {
+    background: #0b5ed7;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 15px rgba(13, 110, 253, 0.2);
+}
+
+.btn-cancel-custom {
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+    border-radius: 10px;
+    padding: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel-custom:hover {
+    background: #f8f9fa;
+    color: #334155;
+    border-color: #94a3b8;
 }
 </style>
 </head>
 
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar navbar-custom">
     <div class="container-fluid">
-        <span class="navbar-brand fw-bold">
-            <i class="bi bi-pencil-square"></i> Edit Kategori
+        <span class="navbar-brand fw-bold text-dark d-flex align-items-center gap-2">
+            <i class="bi bi-tags text-primary"></i> Manajemen Kategori Produk
         </span>
-
-        <div>
-            <i class="bi bi-person-circle"></i> Admin
+        <div class="fw-semibold text-secondary small bg-light px-3 py-2 rounded-pill border">
+            <i class="bi bi-person-circle text-primary me-1"></i> Admin Ruang Kerja
         </div>
     </div>
 </nav>
 
-<!-- CONTENT -->
 <div class="container container-box">
 
     <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">✏️ Edit Kategori</h4>
+        <div class="card-header text-white">
+            <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
+                <i class="bi bi-pencil-square"></i> Perbarui Nama Kategori Alat Olahraga
+            </h5>
         </div>
 
         <div class="card-body">
-
             <form method="POST">
 
-                <div class="mb-3">
-                    <label>ID Kategori</label>
-                    <input type="text" class="form-control" value="<?= $data['id_kategori']; ?>" readonly>
+                <div class="mb-4">
+                    <label class="form-label-custom"><i class="bi bi-hash text-muted"></i> ID Kategori <span class="text-muted fw-normal fs-7">(Sistem Kunci otomatis)</span></label>
+                    <input type="text" class="form-control" value="#<?= htmlspecialchars($data['id_kategori']); ?>" readonly>
                 </div>
 
-                <div class="mb-3">
-                    <label>Nama Kategori</label>
+                <div class="mb-4">
+                    <label class="form-label-custom"><i class="bi bi-tag-fill text-primary"></i> Nama Kategori</label>
                     <input type="text" name="nama_kategori" class="form-control"
-                           value="<?= $data['nama_kategori']; ?>" required>
+                           value="<?= htmlspecialchars($data['nama_kategori']); ?>" placeholder="Contoh: Sepatu Olahraga, Jersey, dll." required autocomplete="off">
                 </div>
 
-                <button type="submit" name="update" class="btn btn-primary w-100">
-                    Update Kategori
-                </button>
-
-                <a href="kategori.php" class="btn btn-secondary w-100 mt-2">
-                    Kembali
-                </a>
+                <div class="d-grid gap-2 mt-5">
+                    <button type="submit" name="update" class="btn btn-primary btn-submit-custom text-white">
+                        <i class="bi bi-check-circle-fill me-2"></i> Simpan Perubahan Kategori
+                    </button>
+                    <a href="kategori.php" class="btn btn-cancel-custom d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-arrow-left-short fs-5"></i> Kembali ke List Kategori
+                    </a>
+                </div>
 
             </form>
-
         </div>
     </div>
 
