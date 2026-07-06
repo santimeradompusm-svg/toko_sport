@@ -82,7 +82,9 @@ $result = mysqli_query($koneksi, $query);
                     <?php else: ?>
                         <button class="btn btn-secondary flex-grow-1" disabled>Stok Habis</button>
                     <?php endif; ?>
-                    
+                    <a href="tambah_keranjang.php?id=<?= $row['id_produk']; ?>" class="btn btn-outline-primary" title="Tambah ke Keranjang">
+                        <i class="bi bi-cart-plus"></i>
+                    </a>
                     <a href="tambah_wishlist.php?id=<?= $row['id_produk']; ?>" class="btn btn-outline-secondary">
                         <i class="bi bi-heart"></i>
                     </a>
