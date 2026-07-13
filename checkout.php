@@ -11,11 +11,17 @@ $username = $_SESSION['username'];
 $user = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT * FROM user WHERE username='$username'"));
 $id_user = $user['id_user'];
 
-// Ambil data keranjang
-$query = "SELECT k.*, p.nama_produk, p.harga, p.foto 
-          FROM keranjang k 
-          JOIN produk p ON k.id_produk = p.id_produk 
-          WHERE k.id_user = '$id_user'";
+// Logika Filter ID Produk (tetap sama)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id_keranjang'])) {
+    $id_dipilih = $_POST['id_keranjang'];
+    $ids = implode(',', array_map('intval', $id_dipilih));
+    $_SESSION['checkout_ids'] = $ids;
+} else {
+    if (!isset($_SESSION['checkout_ids'])) { header("Location: keranjang.php"); exit; }
+    $ids = $_SESSION['checkout_ids'];
+}
+
+$query = "SELECT k.*, p.nama_produk, p.harga, p.foto FROM keranjang k JOIN produk p ON k.id_produk = p.id_produk WHERE k.id_user = '$id_user' AND k.id_keranjang IN ($ids)";
 $result = mysqli_query($koneksi, $query);
 $total_produk = 0;
 ?>
@@ -30,15 +36,14 @@ $total_produk = 0;
     <style>
         :root { --primary-color: #0d6efd; --sidebar-bg: #1e2229; --body-bg: #f8f9fa; }
         body { background: var(--body-bg); font-family: 'Segoe UI', sans-serif; }
-        
         .sidebar { width: 260px; height: 100vh; background: var(--sidebar-bg); position: fixed; left: 0; top: 0; padding-top: 10px; }
-        .sidebar a { display: flex; align-items: center; color: #adb5bd; padding: 14px 24px; text-decoration: none; }
+        .sidebar h3 { color: #fff; padding: 25px 24px; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .sidebar a { display: flex; align-items: center; color: #adb5bd; padding: 14px 24px; text-decoration: none; transition: 0.2s; }
         .sidebar a:hover, .sidebar a.active { background: #2a313d; color: #fff; border-left: 4px solid var(--primary-color); }
-        
-        .main-wrapper { margin-left: 260px; padding: 30px; }
-        .card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .content { margin-left: 260px; padding: 35px 40px; }
+        .card { border-radius: 18px; border: 1px solid #eee; padding: 24px; background: #fff; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .text-theme { color: var(--primary-color); }
-        .btn-pay { background-color: var(--primary-color); color: white; padding: 12px 40px; border-radius: 8px; font-weight: 600; }
+        .btn-pay { background-color: var(--primary-color); color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; border: none; }
     </style>
 </head>
 <body>
@@ -56,79 +61,65 @@ $total_produk = 0;
     <a href="logout.php" class="text-danger mt-3"><i class="bi bi-box-arrow-right"></i> Logout</a>
 </div>
 
-<div class="main-wrapper">
+<div class="content">
     <h4 class="fw-bold mb-4">Checkout</h4>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <h5 class="fw-bold mb-3 text-theme"><i class="bi bi-geo-alt-fill"></i> Alamat Pengiriman</h5>
+                <p class="mb-1 fw-bold"><?= htmlspecialchars($user['nama_lengkap']); ?> | <?= htmlspecialchars($user['no_hp'] ?? '-'); ?></p>
+                <p class="text-muted mb-0"><?= htmlspecialchars($user['alamat'] ?? 'Alamat belum diatur'); ?></p>
+            </div>
 
-    <div class="card p-4">
-        <h5 class="text-theme fw-bold"><i class="bi bi-geo-alt-fill"></i> Alamat Pengiriman</h5>
-        <p class="mb-1 fw-bold"><?= $user['nama_lengkap'] ?? $username; ?> | (+62) 853 3772 3724</p>
-        <p class="text-muted"><?= $user['alamat'] ?? 'Silakan atur alamat di profil'; ?></p>
-    </div>
-
-    <div class="card p-4">
-        <h5 class="fw-bold mb-3">Produk Dipesan</h5>
-        <table class="table align-middle">
-            <tbody>
+            <div class="card">
+                <h5 class="fw-bold mb-4">Produk Dipesan</h5>
                 <?php while ($row = mysqli_fetch_assoc($result)): 
                     $subtotal = $row['jumlah'] * $row['harga'];
                     $total_produk += $subtotal;
                 ?>
-                <tr>
-                    <td><img src="uploads/<?= $row['foto']; ?>" width="50" class="rounded"></td>
-                    <td><?= $row['nama_produk']; ?></td>
-                    <td>Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
-                    <td>x <?= $row['jumlah']; ?></td>
-                    <td class="fw-bold">Rp <?= number_format($subtotal, 0, ',', '.'); ?></td>
-                </tr>
+                <div class="d-flex align-items-center mb-3">
+                    <img src="uploads/<?= $row['foto']; ?>" width="70" class="rounded border me-3">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold"><?= $row['nama_produk']; ?></div>
+                        <small class="text-muted">Rp <?= number_format($row['harga'],0,',','.'); ?> x <?= $row['jumlah']; ?></small>
+                    </div>
+                    <div class="fw-bold">Rp <?= number_format($subtotal, 0, ',', '.'); ?></div>
+                </div>
                 <?php endwhile; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card p-4">
-                <h6 class="fw-bold">Voucher Toko</h6>
-                <select class="form-select mb-3">
-                    <option>Pilih Voucher</option>
-                    <option>DISKON10RB - Potongan Rp 10.000</option>
-                </select>
-                <h6 class="fw-bold">Metode Pengiriman</h6>
-                <select class="form-select">
-                    <option>JNE Regular - Rp 15.000</option>
-                    <option>J&T Express - Rp 17.000</option>
-                </select>
             </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card p-4">
-                <h6 class="fw-bold">Metode Pembayaran</h6>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="pay" id="cod" checked>
-                    <label class="form-check-label" for="cod">Bayar di Tempat (COD)</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="pay" id="tf">
-                    <label class="form-check-label" for="tf">Transfer Bank</label>
+
+            <div class="card">
+                <h6 class="fw-bold mb-3">Opsi Tambahan</h6>
+                <textarea class="form-control mb-3" placeholder="Pesan untuk penjual..."></textarea>
+                <div class="row">
+                    <div class="col-md-6">
+                        <select class="form-select"><option>Pilih Pengiriman</option><option>JNE - Rp 15.000</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <select class="form-select"><option>Pilih Voucher</option></select>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="card p-4">
-        <div class="d-flex justify-content-between">
-            <span>Subtotal Produk:</span> <span>Rp <?= number_format($total_produk, 0, ',', '.'); ?></span>
-        </div>
-        <div class="d-flex justify-content-between">
-            <span>Biaya Pengiriman:</span> <span>Rp 15.000</span>
-        </div>
-        <hr>
-        <div class="d-flex justify-content-between">
-            <span class="fs-5 fw-bold">Total Pembayaran:</span> 
-            <span class="fs-4 fw-bold text-theme">Rp <?= number_format($total_produk + 15000, 0, ',', '.'); ?></span>
-        </div>
-        <div class="text-end mt-4">
-            <a href="proses_checkout.php" class="btn btn-pay">Buat Pesanan</a>
+        <div class="col-lg-4">
+            <div class="card">
+                <h5 class="fw-bold mb-4">Rincian Pembayaran</h5>
+                <div class="d-flex justify-content-between mb-2"><span>Subtotal Produk</span> <span>Rp <?= number_format($total_produk,0,',','.'); ?></span></div>
+                <div class="d-flex justify-content-between mb-2"><span>Biaya Pengiriman</span> <span>Rp 15.000</span></div>
+                <div class="d-flex justify-content-between mb-2"><span>Tukar Koin</span> <span>-Rp 0</span></div>
+                <hr>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="fs-5 fw-bold">Total Pembayaran</span>
+                    <span class="fs-4 fw-bold text-theme">Rp <?= number_format($total_produk + 15000, 0, ',', '.'); ?></span>
+                </div>
+                
+                <h6 class="fw-bold mb-3">Metode Pembayaran</h6>
+                <div class="form-check mb-2"><input class="form-check-input" type="radio" name="pay" id="cod" checked><label class="form-check-label" for="cod">Bayar di Tempat (COD)</label></div>
+                <div class="form-check mb-4"><input class="form-check-input" type="radio" name="pay" id="tf"><label class="form-check-label" for="tf">Transfer Bank</label></div>
+                
+                <a href="proses_checkout.php" class="btn btn-pay">Buat Pesanan Sekarang</a>
+            </div>
         </div>
     </div>
 </div>

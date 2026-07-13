@@ -42,13 +42,14 @@ $result = mysqli_query($koneksi, $query);
 
 <div class="sidebar">
     <h3>🏀 SPORT STORE</h3>
-    <a href="user_dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a>
-    <a href="katalog.php"><i class="bi bi-shop"></i> Produk</a>
-    <a href="pesanan.php"><i class="bi bi-bag-check"></i> Pesanan Saya</a>
+    <a href="user_dashboard.php" class="active"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="katalog.php"><i class="bi bi-shop"></i> Produk</a> <a href="pesanan.php"><i class="bi bi-bag-check"></i> Pesanan Saya</a>
     <a href="keranjang.php"><i class="bi bi-cart3"></i> Keranjang</a>
-    <a href="wishlist.php" class="active"><i class="bi bi-heart"></i> Wishlist</a>
+    <a href="wishlist.php"><i class="bi bi-heart"></i> Wishlist</a>
     <hr class="text-secondary mx-3">
     <a href="profil.php"><i class="bi bi-person-gear"></i> Profil & Alamat</a>
+    <a href="keamanan.php"><i class="bi bi-shield-lock"></i> Keamanan</a>
+    <a href="bantuan.php"><i class="bi bi-question-circle"></i> Pusat Bantuan</a>
     <a href="logout.php" class="text-danger mt-3"><i class="bi bi-box-arrow-right"></i> Logout</a>
 </div>
 

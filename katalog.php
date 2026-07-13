@@ -41,12 +41,13 @@ $result = mysqli_query($koneksi, $query);
 
 <div class="sidebar">
     <h3>🏀 SPORT STORE</h3>
-    <a href="user_dashboard.php" class="active"><i class="bi bi-speedometer2"></i> Dashboard</a>
-    <a href="katalog.php"><i class="bi bi-shop"></i> Produk</a> <a href="pesanan.php"><i class="bi bi-bag-check"></i> Pesanan Saya</a>
+    <a href="user_dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="katalog.php"><i class="bi bi-shop"></i> Produk</a> 
+    <a href="pesanan.php"><i class="bi bi-bag-check"></i> Pesanan Saya</a>
     <a href="keranjang.php"><i class="bi bi-cart3"></i> Keranjang</a>
     <a href="wishlist.php"><i class="bi bi-heart"></i> Wishlist</a>
     <hr class="text-secondary mx-3">
-    <a href="profil.php"><i class="bi bi-person-gear"></i> Profil & Alamat</a>
+    <a href="profil.php" class="active"><i class="bi bi-person-gear"></i> Profil & Alamat</a>
     <a href="keamanan.php"><i class="bi bi-shield-lock"></i> Keamanan</a>
     <a href="bantuan.php"><i class="bi bi-question-circle"></i> Pusat Bantuan</a>
     <a href="logout.php" class="text-danger mt-3"><i class="bi bi-box-arrow-right"></i> Logout</a>
@@ -69,20 +70,25 @@ $result = mysqli_query($koneksi, $query);
         <?php while ($row = mysqli_fetch_assoc($result)): ?>
         <div class="col-md-3">
             <div class="card-product">
-                <img src="uploads/<?= !empty($row['foto']) ? $row['foto'] : 'default.jpg'; ?>" 
-                     class="produk-img" alt="<?= $row['nama_produk']; ?>">
+                <a href="detail_produk.php?id=<?= $row['id_produk']; ?>">
+                    <img src="uploads/<?= !empty($row['foto']) ? $row['foto'] : 'default.jpg'; ?>" 
+                        class="produk-img" alt="<?= $row['nama_produk']; ?>">
+                </a>
                 
-                <h6 class="fw-bold mb-1"><?= $row['nama_produk']; ?></h6>
+                <a href="detail_produk.php?id=<?= $row['id_produk']; ?>" class="text-decoration-none text-dark">
+                    <h6 class="fw-bold mb-1"><?= $row['nama_produk']; ?></h6>
+                </a>
+
                 <p class="text-primary fw-bold mb-2">Rp <?= number_format($row['harga'], 0, ',', '.'); ?></p>
                 <small class="text-muted d-block mb-3">Stok: <?= $row['stok']; ?></small>
                 
                 <div class="d-flex gap-2">
                     <?php if ($row['stok'] > 0): ?>
-                        <a href="tambah_keranjang.php?id=<?= $row['id_produk']; ?>" class="btn btn-primary flex-grow-1 fw-bold">Beli</a>
+                        <a href="checkout.php?id=<?= $row['id_produk']; ?>" class="btn btn-primary flex-grow-1 fw-bold">Beli</a>
                     <?php else: ?>
                         <button class="btn btn-secondary flex-grow-1" disabled>Stok Habis</button>
                     <?php endif; ?>
-                    <a href="tambah_keranjang.php?id=<?= $row['id_produk']; ?>" class="btn btn-outline-primary" title="Tambah ke Keranjang">
+                    <a href="detail_produk.php?id=<?= $row['id_produk']; ?>" class="btn btn-outline-primary" title="Tambah ke Keranjang">
                         <i class="bi bi-cart-plus"></i>
                     </a>
                     <a href="tambah_wishlist.php?id=<?= $row['id_produk']; ?>" class="btn btn-outline-secondary">
