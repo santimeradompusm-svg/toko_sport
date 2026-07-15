@@ -17,8 +17,10 @@ if(!$conn){
 $filter_status = isset($_GET['status']) ? $_GET['status'] : 'semua';
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
 
-// 1. Query disesuaikan: total_harga (bukan total_bayar) dan id_user join ke tabel user
-$query_str = "SELECT transaksi.*, user.username AS nama_pelanggan 
+$query_str = "SELECT transaksi.*, 
+              IF(transaksi.nama_pelanggan IS NOT NULL AND transaksi.nama_pelanggan != '', 
+                 transaksi.nama_pelanggan, 
+                 IFNULL(user.username, 'Umum / Guest')) AS nama_pelanggan 
               FROM transaksi 
               LEFT JOIN user ON transaksi.id_user = user.id_user WHERE 1=1";
 
