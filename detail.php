@@ -2,26 +2,39 @@
 session_start();
 require_once 'koneksi.php';
 
+// Cek apakah user sudah login
 if (!isset($_SESSION['username']) || !isset($_GET['id'])) {
-    header("Location: pesanan.php");
+    header("Location: login.php");
     exit;
 }
 
-$id_pesanan = $_GET['id'];
+$id_pesanan = mysqli_real_escape_string($koneksi, $_GET['id']);
 $username = $_SESSION['username'];
-$query_user = mysqli_query($koneksi, "SELECT id_user FROM user WHERE username = '$username'");
-$data_user = mysqli_fetch_assoc($query_user);
-$id_user = $data_user['id_user'];
+$role = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
 
-$query_pesanan = mysqli_query($koneksi, "SELECT * FROM pesanan WHERE id_pesanan = '$id_pesanan' AND id_user = '$id_user'");
+// Jika yang login adalah admin, izinkan melihat semua pesanan tanpa batasan id_user
+if ($role == 'admin') {
+    $query_pesanan = mysqli_query($koneksi, "SELECT * FROM pesanan WHERE id_pesanan = '$id_pesanan'");
+} else {
+    // Jika user biasa, batasi hanya pesanan milik user tersebut
+    $query_user = mysqli_query($koneksi, "SELECT id_user FROM user WHERE username = '$username'");
+    $data_user = mysqli_fetch_assoc($query_user);
+    $id_user = $data_user['id_user'] ?? 0;
+
+    $query_pesanan = mysqli_query($koneksi, "SELECT * FROM pesanan WHERE id_pesanan = '$id_pesanan' AND id_user = '$id_user'");
+}
+
 $pesanan = mysqli_fetch_assoc($query_pesanan);
 
 if (!$pesanan) {
-    echo "<script>alert('Pesanan tidak ditemukan!'); window.location='pesanan.php';</script>";
+    // Arahkan kembali sesuai hak akses (admin ke transaksi.php, user ke pesanan.php)
+    $redirect_page = ($role == 'admin') ? 'transaksi.php' : 'pesanan.php';
+    echo "<script>alert('Pesanan tidak ditemukan!'); window.location='$redirect_page';</script>";
     exit;
 }
 
-$query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto 
+// Ambil detail produk pesanan dengan JOIN ke tabel produk (mengambil nama_produk, foto, harga, size, varian)
+$query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto, p.harga, p.size, p.varian 
                                         FROM detail_pesanan dp 
                                         JOIN produk p ON dp.id_produk = p.id_produk 
                                         WHERE dp.id_pesanan = '$id_pesanan'");
@@ -32,7 +45,7 @@ $query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Pesanan #<?= $id_pesanan ?> - SPORT STORE</title>
+    <title>Detail Pesanan #<?= htmlspecialchars($id_pesanan) ?> - SPORT STORE</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -74,10 +87,14 @@ $query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto
 <div class="container my-5" style="max-width: 1000px;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="bi bi-receipt-cutoff text-primary me-2"></i> Rincian Pesanan #<?= $id_pesanan ?></h4>
-            <p class="text-muted small mb-0">Informasi lengkap transaksi dan status pengiriman produk Anda.</p>
+            <h4 class="fw-bold mb-1"><i class="bi bi-receipt-cutoff text-primary me-2"></i> Rincian Pesanan #<?= htmlspecialchars($id_pesanan) ?></h4>
+            <p class="text-muted small mb-0">Informasi lengkap transaksi dan status pengiriman produk.</p>
         </div>
-        <a href="pesanan.php" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
+        <?php 
+            // Tombol kembali dinamis berdasarkan role
+            $back_page = ($role == 'admin') ? 'transaksi.php' : 'pesanan.php';
+        ?>
+        <a href="<?= $back_page; ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
@@ -92,7 +109,8 @@ $query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto
                 if ($query_detail && mysqli_num_rows($query_detail) > 0) {
                     $ada_produk = true;
                     while ($d = mysqli_fetch_assoc($query_detail)): 
-                        $subtotal = isset($d['subtotal']) ? $d['subtotal'] : ($d['jumlah'] * $d['harga_satuan']);
+                        // Gunakan subtotal dari tabel detail_pesanan, jika kosong hitung dari jumlah * harga produk
+                        $subtotal = ($d['subtotal'] > 0) ? $d['subtotal'] : ($d['jumlah'] * ($d['harga'] ?? 0));
                 ?>
                 <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
                     <div class="d-flex align-items-center">
@@ -100,10 +118,13 @@ $query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto
                         <div>
                             <h6 class="fw-bold text-dark mb-1"><?= htmlspecialchars($d['nama_produk']) ?></h6>
                             <div class="text-muted small">
-                                <?php if (!empty($d['ukuran'])): ?>
-                                    <span class="badge bg-light text-dark border me-2">Ukuran: <?= $d['ukuran']; ?></span>
+                                <?php if (!empty($d['size'])): ?>
+                                    <span class="badge bg-light text-dark border me-1">Size: <?= htmlspecialchars($d['size']); ?></span>
                                 <?php endif; ?>
-                                <span>Jumlah: <strong><?= $d['jumlah'] ?> pcs</strong></span>
+                                <?php if (!empty($d['varian'])): ?>
+                                    <span class="badge bg-light text-dark border me-1">Varian: <?= htmlspecialchars($d['varian']); ?></span>
+                                <?php endif; ?>
+                                <span class="ms-1">Jumlah: <strong><?= $d['jumlah'] ?> pcs</strong></span>
                             </div>
                         </div>
                     </div>
@@ -118,14 +139,15 @@ $query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto
                 ?>
                 <div class="text-center py-4 text-muted">
                     <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
-                    <p class="mb-0">Detail produk untuk transaksi ini sedang diproses.</p>
+                    <p class="mb-0">Detail produk untuk transaksi ini tidak ditemukan.</p>
+                    <small class="text-danger">Pastikan data pada tabel `detail_pesanan` memiliki `id_pesanan` = <?= htmlspecialchars($id_pesanan) ?></small>
                 </div>
                 <?php endif; ?>
 
                 <div class="mt-4 pt-3 bg-light p-3 rounded-4">
                     <h6 class="fw-bold small text-uppercase text-muted mb-2"><i class="bi bi-truck me-1"></i> Informasi Pengiriman</h6>
                     <p class="small mb-1"><strong>Kurir:</strong> Regular Express (JNE / SiCepat)</p>
-                    <p class="small mb-0 text-muted">Alamat pengiriman sesuai dengan profil akun Anda yang terdaftar.</p>
+                    <p class="small mb-0 text-muted">Alamat pengiriman sesuai dengan data pemesan.</p>
                 </div>
             </div>
         </div>
@@ -146,7 +168,7 @@ $query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto
                     ];
                     $badgeColor = $colors[$pesanan['status']] ?? 'bg-dark';
                     ?>
-                    <span class="badge <?= $badgeColor; ?> badge-status"><?= $pesanan['status'] ?></span>
+                    <span class="badge <?= $badgeColor; ?> badge-status"><?= htmlspecialchars($pesanan['status']) ?></span>
                 </div>
 
                 <div class="d-flex justify-content-between mb-2">
@@ -170,51 +192,6 @@ $query_detail = mysqli_query($koneksi, "SELECT dp.*, p.nama_produk, p.foto
                     <span class="fw-bold text-dark">Total Pembayaran:</span>
                     <span class="fw-bold text-primary fs-5">Rp <?= number_format($pesanan['total_harga'], 0, ',', '.') ?></span>
                 </div>
-
-                <!-- Bagian Instruksi Pembayaran Dinamis -->
-                <?php if ($pesanan['status'] == 'Pending'): ?>
-                    <?php 
-                    $metode = $pesanan['metode_pembayaran'] ?? 'COD';
-                    
-                    if (strcasecmp($metode, 'COD') == 0): 
-                    ?>
-                        <div class="alert alert-success border-0 rounded-4 small p-3 mb-0">
-                            <div class="fw-bold mb-1"><i class="bi bi-cash-coin me-1"></i> Pembayaran di Tempat (COD)</div>
-                            <p class="mb-0">Silakan siapkan uang tunai pas sebesar <strong>Rp <?= number_format($pesanan['total_harga'], 0, ',', '.') ?></strong> saat kurir mengantar pesanan ke alamat Anda.</p>
-                        </div>
-
-                    <?php elseif (strcasecmp($metode, 'QRIS') == 0): ?>
-                        <div class="alert alert-info border-0 rounded-4 small p-3 mb-0 text-center">
-                            <div class="fw-bold mb-2"><i class="bi bi-qr-code-scan me-1"></i> Scan QRIS untuk Membayar</div>
-                            <div class="bg-white p-3 rounded-3 border d-inline-block mb-2">
-                                <i class="bi bi-qr-code text-dark" style="font-size: 80px;"></i>
-                            </div>
-                            <p class="mb-0 text-muted" style="font-size: 11px;">Scan menggunakan e-Wallet atau m-Banking pilihan Anda.</p>
-                        </div>
-
-                    <?php else: 
-                        // Daftar Nomor Rekening Otomatis
-                        $rekening_list = [
-                            "BCA" => "1234-5678-9010",
-                            "BRI" => "0987-6543-2109",
-                            "BNI" => "1122-3344-5566",
-                            "Mandiri" => "5544-3322-1100",
-                            "Syariah Indonesia (BSI)" => "7788-9900-1122"
-                        ];
-                        $no_rek = $rekening_list[$metode] ?? "123-456-7890";
-                    ?>
-                        <div class="alert alert-warning border-0 rounded-4 small p-3 mb-0">
-                            <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Menunggu Pembayaran</div>
-                            <p class="mb-2">Silakan transfer pembayaran ke rekening berikut:</p>
-                            <div class="bg-white p-2 rounded-3 border text-center fw-bold text-dark mb-2">
-                                <?= htmlspecialchars($metode); ?> : <?= $no_rek; ?> <br>
-                                <span class="small text-muted fw-normal">a.n PT Sport Store Indonesia</span>
-                            </div>
-                            <span class="text-muted d-block" style="font-size: 11px;">Pesanan akan otomatis diproses setelah pembayaran dikonfirmasi.</span>
-                        </div>
-                    <?php endif; ?>
-
-                <?php endif; ?>
             </div>
         </div>
     </div>
